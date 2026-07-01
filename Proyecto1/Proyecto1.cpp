@@ -45,6 +45,11 @@ int indiceVictoria = 0;
 Estadisticas stats;
 bool estadisticaRegistrada = false;
 
+// Control del List Box (Dropdown) de Dificultad
+bool listBoxAbierto = false;
+const char* textosDificultades[3] = { "FÁCIL", "MEDIA", "IMBATIBLE" };
+Rectangle rectListBoxPrincipal = { 200, 490, 200, 45 };
+
 // TEXTURAS GLOBALES PARA EL NIVEL 3
 Texture2D texDragon;
 Texture2D texFenix;
@@ -267,25 +272,46 @@ void ActualizarMenu() {
     Vector2 mousePos = GetMousePosition();
     bool clic = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
-    if (CheckCollisionPointRec(mousePos, { 150, 240, 300, 50 }) && clic) {
+    if (CheckCollisionPointRec(mousePos, { 150, 240, 300, 50 }) && clic && !listBoxAbierto) {
         contraIA = true;
         estadoActual = JUGANDO;
         InicializarJuego();
     }
-    if (CheckCollisionPointRec(mousePos, { 150, 310, 300, 50 }) && clic) {
+    if (CheckCollisionPointRec(mousePos, { 150, 310, 300, 50 }) && clic && !listBoxAbierto) {
         contraIA = false;
         estadoActual = JUGANDO;
         InicializarJuego();
     }
-    if (CheckCollisionPointRec(mousePos, { 150, 380, 300, 50 }) && clic) {
+    if (CheckCollisionPointRec(mousePos, { 150, 380, 300, 50 }) && clic && !listBoxAbierto) {
         estadoActual = PANTALLA_ESTADISTICAS;
     }
 
-    if (CheckCollisionPointRec(mousePos, { 60, 480, 140, 45 }) && clic) dificultadActual = FACIL;
-    if (CheckCollisionPointRec(mousePos, { 230, 480, 140, 45 }) && clic) dificultadActual = MEDIO;
-    if (CheckCollisionPointRec(mousePos, { 400, 480, 140, 45 }) && clic) dificultadActual = DIFICIL;
+    // LÓGICA DEL LIST BOX (DROPDOWN DE DIFICULTAD)
+    if (clic) {
+        if (CheckCollisionPointRec(mousePos, rectListBoxPrincipal)) {
+            listBoxAbierto = !listBoxAbierto;
+        }
+        else if (listBoxAbierto) {
+            for (int i = 0; i < 3; i++) {
+                Rectangle rectOpcion = {
+                    rectListBoxPrincipal.x,
+                    rectListBoxPrincipal.y + rectListBoxPrincipal.height + (i * rectListBoxPrincipal.height),
+                    rectListBoxPrincipal.width,
+                    rectListBoxPrincipal.height
+                };
+                if (CheckCollisionPointRec(mousePos, rectOpcion)) {
+                    dificultadActual = (Dificultad)i;
+                    listBoxAbierto = false;
+                    break;
+                }
+            }
+            if (!CheckCollisionPointRec(mousePos, rectListBoxPrincipal)) {
+                listBoxAbierto = false;
+            }
+        }
+    }
 
-    if (CheckCollisionPointRec(mousePos, { 200, 590, 200, 45 }) && clic) {
+    if (CheckCollisionPointRec(mousePos, { 200, 590, 200, 45 }) && clic && !listBoxAbierto) {
         CloseWindow();
     }
 }
@@ -455,7 +481,6 @@ void DibujarFicha(int tipo, int cx, int cy, float p) {
                 DrawTexturePro(texDragon, origen, destino, { 0.0f, 0.0f }, 0.0f, WHITE);
             }
             else {
-                // RESPALDO: Triángulo verde neón dinámico si falla la carga física
                 DrawTriangle({ fx, fy - 40.0f * p }, { fx - 40.0f * p, fy + 30.0f * p }, { fx + 40.0f * p, fy + 30.0f * p }, dragonBrillo);
             }
         }
@@ -466,7 +491,6 @@ void DibujarFicha(int tipo, int cx, int cy, float p) {
                 DrawTexturePro(texFenix, origen, destino, { 0.0f, 0.0f }, 0.0f, WHITE);
             }
             else {
-                // RESPALDO: Círculo rojo coral dinámico si falla la carga física
                 DrawCircle((int)fx, (int)fy, (int)(35.0f * p), fenixBrillo);
             }
         }
@@ -518,26 +542,42 @@ void DibujarPantallaMenu() {
     DrawLineEx({ 100, 450 }, { 500, 450 }, 1.5f, rejillaColor);
     DrawText("CONFIGURACIÓN DE IA / DIFICULTAD", 160, 460, 15, PURPLE);
 
-    Rectangle btnFacil = { 60, 490, 140, 45 };
-    DrawRectangleRounded(btnFacil, 0.2f, 16, (dificultadActual == FACIL) ? Fade(GREEN, 0.25f) : BLACK);
-    DrawRectangleRoundedLinesEx(btnFacil, 0.2f, 16, (dificultadActual == FACIL) ? 3.0f : 1.0f, (dificultadActual == FACIL) ? GREEN : GRAY);
-    DrawText("FÁCIL", 105, 503, 16, (dificultadActual == FACIL) ? GREEN : GRAY);
-
-    Rectangle btnMedio = { 230, 490, 140, 45 };
-    DrawRectangleRounded(btnMedio, 0.2f, 16, (dificultadActual == MEDIO) ? Fade(ORANGE, 0.25f) : BLACK);
-    DrawRectangleRoundedLinesEx(btnMedio, 0.2f, 16, (dificultadActual == MEDIO) ? 3.0f : 1.0f, (dificultadActual == MEDIO) ? ORANGE : GRAY);
-    DrawText("MEDIA", 275, 503, 16, (dificultadActual == MEDIO) ? ORANGE : GRAY);
-
-    Rectangle btnDificil = { 400, 490, 140, 45 };
-    DrawRectangleRounded(btnDificil, 0.2f, 16, (dificultadActual == DIFICIL) ? Fade(RED, 0.25f) : BLACK);
-    DrawRectangleRoundedLinesEx(btnDificil, 0.2f, 16, (dificultadActual == DIFICIL) ? 3.0f : 1.0f, (dificultadActual == DIFICIL) ? RED : GRAY);
-    DrawText("IMBATIBLE", 430, 503, 16, (dificultadActual == DIFICIL) ? RED : GRAY);
-
+    // BOTÓN DE SALIR (Se dibuja antes para que la List Box abierta flote por encima de él)
     Rectangle btnSalir = { 200, 590, 200, 45 };
     bool hoverSalir = CheckCollisionPointRec(mousePos, btnSalir);
     DrawRectangleRounded(btnSalir, 0.2f, 16, hoverSalir ? Fade(RED, 0.2f) : BLACK);
     DrawRectangleRoundedLinesEx(btnSalir, 0.2f, 16, 1.0f, hoverSalir ? RED : GRAY);
     DrawText("SALIR", 275, 603, 16, hoverSalir ? RED : GRAY);
+
+    // =================================================================
+    // GESTIÓN Y RENDERIZADO DEL LIST BOX (DROPDOWN)
+    // =================================================================
+    if (listBoxAbierto) {
+        for (int i = 0; i < 3; i++) {
+            Rectangle rectOpcion = {
+                rectListBoxPrincipal.x,
+                rectListBoxPrincipal.y + rectListBoxPrincipal.height + (i * rectListBoxPrincipal.height),
+                rectListBoxPrincipal.width,
+                rectListBoxPrincipal.height
+            };
+
+            bool hoverOpcion = CheckCollisionPointRec(mousePos, rectOpcion);
+            DrawRectangleRec(rectOpcion, hoverOpcion ? Fade(PURPLE, 0.3f) : fondoOscuro);
+            DrawRectangleLinesEx(rectOpcion, 1.0f, tableroNeon);
+
+            Color colorTexto = (dificultadActual == i) ? GREEN : GRAY;
+            if (hoverOpcion) colorTexto = RAYWHITE;
+
+            DrawText(textosDificultades[i], (int)rectOpcion.x + 20, (int)rectOpcion.y + 15, 16, colorTexto);
+        }
+    }
+
+    bool hoverPrincipal = CheckCollisionPointRec(mousePos, rectListBoxPrincipal);
+    DrawRectangleRounded(rectListBoxPrincipal, 0.2f, 16, hoverPrincipal ? Fade(tableroNeon, 0.2f) : BLACK);
+    DrawRectangleRoundedLinesEx(rectListBoxPrincipal, 0.2f, 16, 2.0f, listBoxAbierto ? GREEN : tableroNeon);
+    DrawText(textosDificultades[dificultadActual], (int)rectListBoxPrincipal.x + 20, (int)rectListBoxPrincipal.y + 15, 16, RAYWHITE);
+    DrawText(listBoxAbierto ? "^" : "v", (int)rectListBoxPrincipal.x + (int)rectListBoxPrincipal.width - 25, (int)rectListBoxPrincipal.y + 12, 16, PURPLE);
+    // =================================================================
 
     EndDrawing();
 }
@@ -674,7 +714,7 @@ void DibujarPantallaEstadisticas() {
 }
 
 // =================================================================
-// PUNTO DE ENTRADA PRINCIPAL CON COMPATIBILIDAD DINÁMICA DE RUTAS
+// PUNTO DE ENTRADA PRINCIPAL
 // =================================================================
 int main() {
     const int anchoPantalla = 600;
@@ -683,18 +723,11 @@ int main() {
     InitWindow(anchoPantalla, altoPantalla, "Cyberpunk Tic-Tac-Toe: Advanced Edition");
     SetTargetFPS(60);
 
-    // =================================================================
-    // CARGA DIRECTA Y SIMPLE DESDE LA RAÍZ DEL PROYECTO $(ProjectDir)
-    // =================================================================
-
-    // Forzamos la carga directa desde la carpeta assets que tienes al lado de tu .cpp
     texDragon = LoadTexture("assets/dragon.png");
     if (texDragon.id == 0) texDragon = LoadTexture("assets/dragon.PNG");
 
     texFenix = LoadTexture("assets/fenix.png");
     if (texFenix.id == 0) texFenix = LoadTexture("assets/fenix.PNG");
-
-    // =================================================================
 
     CargarEstadisticas();
     InicializarJuego();
