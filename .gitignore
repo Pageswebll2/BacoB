@@ -1,0 +1,12 @@
+.vs/ 
+Debug/ 
+Release/ 
+x64/ 
+*.exe 
+*.obj 
+.vs/ 
+Debug/ 
+Release/ 
+x64/ 
+*.exe 
+*.obj 
