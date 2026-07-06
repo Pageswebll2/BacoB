@@ -53,6 +53,9 @@ Rectangle rectListBoxPrincipal = { 200, 490, 200, 45 };
 // TEXTURAS GLOBALES PARA EL NIVEL 3
 Texture2D texDragon;
 Texture2D texFenix;
+Texture2D texCopa;
+Texture2D texPulgarAbajo;
+Texture2D texEmpate;
 
 // Paleta Neón Cyberpunk Unificada
 Color fondoOscuro = { 10, 5, 25, 255 };
@@ -506,8 +509,6 @@ void DibujarLineaGanadora() {
         float x = (float)indiceVictoria * 180.0f + 120.0f;
         DrawLineEx({ x, 145 }, { x, 655 }, 14, lineaGanadora);
     }
-    else if (tipoVictoria == 3) DrawLineEx({ 50, 155 }, { 550, 655 }, 14, lineaGanadora);
-    else if (tipoVictoria == 4) DrawLineEx({ 550, 155 }, { 50, 655 }, 14, lineaGanadora);
 }
 
 void DibujarPantallaMenu() {
@@ -659,33 +660,45 @@ void DibujarPantallaJuego() {
     }
 
     if (juegoTerminado) {
-        Rectangle menuFinal = { 50.0f, 260.0f, 500.0f, 240.0f };
-        DrawRectangleRec(menuFinal, Fade(BLACK, 0.95f));
-        DrawRectangleRoundedLinesEx(menuFinal, 0.08f, 16, 4.0f, tableroBrillo);
+        Rectangle menuFinal = { 30.0f, 140.0f, 540.0f, 420.0f };
+        DrawRectangleRec(menuFinal, Fade(BLACK, 0.93f));
+        DrawRectangleRoundedLinesEx(menuFinal, 0.06f, 16, 4.0f, tableroBrillo);
 
         if (estadoResultado == 1) {
-            if (nivelActual == 1) DrawText("¡GANÓ EL JUGADOR X!", 110, 280, 24, brilloP1);
-            else if (nivelActual == 2) DrawText("¡GANÓ EL ROBOT AZUL!", 110, 280, 24, brilloP1);
-            else DrawText("¡GANÓ EL DRAGÓN VERDE!", 100, 280, 24, dragonBrillo);
+            if (nivelActual == 1) DrawText("¡GANÓ EL JUGADOR X!", 140, 160, 24, brilloP1);
+            else if (nivelActual == 2) DrawText("¡GANÓ EL ROBOT AZUL!", 140, 160, 24, brilloP1);
+            else DrawText("¡GANÓ EL DRAGÓN VERDE!", 130, 160, 24, dragonBrillo);
         }
         else if (estadoResultado == 2) {
-            if (nivelActual == 1) DrawText("¡GANÓ EL JUGADOR O!", 120, 280, 24, cyborgBrillo);
-            else if (nivelActual == 2) DrawText("¡GANÓ EL CYBORG ROJO!", 120, 280, 24, cyborgBrillo);
-            else DrawText("¡GANÓ EL FÉNIX ROJO!", 125, 280, 24, fenixBrillo);
+            if (nivelActual == 1) DrawText("¡GANÓ EL JUGADOR O!", 150, 160, 24, cyborgBrillo);
+            else if (nivelActual == 2) DrawText("¡GANÓ EL CYBORG ROJO!", 150, 160, 24, cyborgBrillo);
+            else DrawText("¡GANÓ EL FÉNIX ROJO!", 155, 160, 24, fenixBrillo);
         }
         else if (estadoResultado == 3) {
-            DrawText("¡EMPATE EN EL CUADRO!", 140, 280, 24, RAYWHITE);
+            DrawText("¡EMPATE EN EL CUADRO!", 170, 160, 24, RAYWHITE);
         }
 
-        DrawText("Presiona [ENTER] para ir al SIGUIENTE NIVEL", 95, 335, 16, GREEN);
-        DrawText("Presiona [R] para reiniciar este nivel", 145, 375, 15, GRAY);
+        int imgX = 300, imgY = 310, imgSize = 120;
+        if (estadoResultado == 1) {
+            if (texCopa.id > 0) DrawTexturePro(texCopa, { 0, 0, (float)texCopa.width, (float)texCopa.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+        }
+        else if (estadoResultado == 2) {
+            if (contraIA && texPulgarAbajo.id > 0) DrawTexturePro(texPulgarAbajo, { 0, 0, (float)texPulgarAbajo.width, (float)texPulgarAbajo.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+            else if (texCopa.id > 0) DrawTexturePro(texCopa, { 0, 0, (float)texCopa.width, (float)texCopa.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+        }
+        else if (estadoResultado == 3) {
+            if (texEmpate.id > 0) DrawTexturePro(texEmpate, { 0, 0, (float)texEmpate.width, (float)texEmpate.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+        }
 
-        Rectangle btnVolverMenu = { 175, 430, 250, 35 };
+        DrawText("Presiona [ENTER] para ir al SIGUIENTE NIVEL", 105, 410, 16, GREEN);
+        DrawText("Presiona [R] para reiniciar este nivel", 155, 445, 15, GRAY);
+
+        Rectangle btnVolverMenu = { 175, 480, 250, 35 };
         Vector2 mPos = GetMousePosition();
         bool hMenu = CheckCollisionPointRec(mPos, btnVolverMenu);
         DrawRectangleRounded(btnVolverMenu, 0.2f, 16, hMenu ? Fade(PURPLE, 0.3f) : Fade(PURPLE, 0.1f));
         DrawRectangleRoundedLinesEx(btnVolverMenu, 0.2f, 16, 1.5f, PURPLE);
-        DrawText("VOLVER AL MENÚ", 230, 440, 15, tableroBrillo);
+        DrawText("VOLVER AL MENÚ", 230, 490, 15, tableroBrillo);
     }
     EndDrawing();
 }
@@ -728,6 +741,15 @@ int main() {
 
     texFenix = LoadTexture("assets/fenix.png");
     if (texFenix.id == 0) texFenix = LoadTexture("assets/fenix.PNG");
+    
+    texCopa = LoadTexture("assets/copa.png");
+    if (texCopa.id == 0) texCopa = LoadTexture("assets/copa.PNG");
+    
+    texPulgarAbajo = LoadTexture("assets/pulgar.png");
+    if (texPulgarAbajo.id == 0) texPulgarAbajo = LoadTexture("assets/pulgar.PNG");
+
+    texEmpate = LoadTexture("assets/empate.png");
+    if (texEmpate.id == 0) texEmpate = LoadTexture("assets/empate.PNG");
 
     CargarEstadisticas();
     InicializarJuego();
@@ -751,6 +773,9 @@ int main() {
 
     UnloadTexture(texDragon);
     UnloadTexture(texFenix);
+    UnloadTexture(texCopa);
+    UnloadTexture(texPulgarAbajo);
+    UnloadTexture(texEmpate);
 
     CloseWindow();
     return 0;
