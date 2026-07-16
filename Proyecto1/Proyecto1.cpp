@@ -679,15 +679,16 @@ void DibujarPantallaJuego() {
         }
 
         int imgX = 300, imgY = 310, imgSize = 120;
+        Vector2 origenV = { 0.0f, 0.0f };
         if (estadoResultado == 1) {
-            if (texCopa.id > 0) DrawTexturePro(texCopa, { 0, 0, (float)texCopa.width, (float)texCopa.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+            if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
         }
         else if (estadoResultado == 2) {
-            if (contraIA && texPulgarAbajo.id > 0) DrawTexturePro(texPulgarAbajo, { 0, 0, (float)texPulgarAbajo.width, (float)texPulgarAbajo.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
-            else if (texCopa.id > 0) DrawTexturePro(texCopa, { 0, 0, (float)texCopa.width, (float)texCopa.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+            if (contraIA && texPulgarAbajo.id > 0) DrawTexturePro(texPulgarAbajo, Rectangle{ 0, 0, (float)texPulgarAbajo.width, (float)texPulgarAbajo.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
+            else if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
         }
         else if (estadoResultado == 3) {
-            if (texEmpate.id > 0) DrawTexturePro(texEmpate, { 0, 0, (float)texEmpate.width, (float)texEmpate.height }, { (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, { 0, 0 }, 0, WHITE);
+            if (texEmpate.id > 0) DrawTexturePro(texEmpate, Rectangle{ 0, 0, (float)texEmpate.width, (float)texEmpate.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
         }
 
         DrawText("Presiona [ENTER] para ir al SIGUIENTE NIVEL", 105, 410, 16, GREEN);
