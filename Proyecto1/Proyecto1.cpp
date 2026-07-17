@@ -811,9 +811,22 @@ void DibujarPantallaJuego() {
         }
         else if (estadoResultado == 3) {
             DrawText("¡EMPATE EN EL CUADRO!", 170, 160, 24, RAYWHITE);
+                }
+
+        int imgX = 300, imgY = 250, imgSize = 80;
+        Vector2 origenV = { 0.0f, 0.0f };
+        if (estadoResultado == 1) {
+            if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
+        }
+        else if (estadoResultado == 2) {
+            if (contraIA && texPulgarAbajo.id > 0) DrawTexturePro(texPulgarAbajo, Rectangle{ 0, 0, (float)texPulgarAbajo.width, (float)texPulgarAbajo.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
+            else if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
+        }
+        else if (estadoResultado == 3) {
+            if (texEmpate.id > 0) DrawTexturePro(texEmpate, Rectangle{ 0, 0, (float)texEmpate.width, (float)texEmpate.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
         }
 
-        // Dibujar botones para reintentar o menú
+        // Dibujar botones para reintentar o men�
         DrawText("PRESIONA ENTER PARA SIGUIENTE NIVEL", 115, 330, 16, GREEN);
         DrawText("PRESIONA R PARA REINICIAR", 165, 370, 16, RAYWHITE);
 
@@ -949,11 +962,16 @@ int main() {
     InicializarJuego();
 
     // Intentamos cargar las texturas (si existen)
-    texDragon = LoadTexture("dragon.png");
-    texFenix = LoadTexture("fenix.png");
-    texCopa = LoadTexture("copa.png");
-    texPulgarAbajo = LoadTexture("pulgar_abajo.png");
-    texEmpate = LoadTexture("empate.png");
+    texDragon = LoadTexture("assets/dragon.png");
+    if (texDragon.id == 0) texDragon = LoadTexture("assets/dragon.PNG");
+    texFenix = LoadTexture("assets/fenix.png");
+    if (texFenix.id == 0) texFenix = LoadTexture("assets/fenix.PNG");
+    texCopa = LoadTexture("assets/copa.png");
+    if (texCopa.id == 0) texCopa = LoadTexture("assets/copa.PNG");
+    texPulgarAbajo = LoadTexture("assets/pulgar.png");
+    if (texPulgarAbajo.id == 0) texPulgarAbajo = LoadTexture("assets/pulgar.PNG");
+    texEmpate = LoadTexture("assets/empate.png");
+    if (texEmpate.id == 0) texEmpate = LoadTexture("assets/empate.PNG");
 
     while (!WindowShouldClose()) {
         switch (estadoActual) {
