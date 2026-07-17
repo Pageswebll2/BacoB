@@ -1,14 +1,15 @@
-#define WIN32_LEAN_AND_MEAN 
-#pragma comment(linker, "/SUBSYSTEM:Console") 
+#define WIN32_LEAN_AND_MEAN
+#pragma comment(linker, "/SUBSYSTEM:Console")
 
-#define _CRT_SECURE_NO_WARNINGS 
+#define _CRT_SECURE_NO_WARNINGS
 #include "raylib.h"
-#include <stdio.h> 
+#include <stdio.h>
+#include <math.h>
 
 // =================================================================
 // ESTADOS DEL JUEGO Y DIFICULTADES
 // =================================================================
-enum EstadoJuego { MENU_PRINCIPAL, JUGANDO, PANTALLA_ESTADISTICAS };
+enum EstadoJuego { PANTALLA_CARGA, MENU_PRINCIPAL, JUGANDO, PAUSA, PANTALLA_ESTADISTICAS };
 enum Dificultad { FACIL, MEDIO, DIFICIL };
 
 struct Casilla {
@@ -29,7 +30,7 @@ struct Estadisticas {
 // =================================================================
 // VARIABLES GLOBALES DE CONTROL
 // =================================================================
-EstadoJuego estadoActual = MENU_PRINCIPAL;
+EstadoJuego estadoActual = PANTALLA_CARGA;
 Dificultad dificultadActual = FACIL;
 bool contraIA = false;
 
@@ -44,6 +45,14 @@ int indiceVictoria = 0;
 
 Estadisticas stats;
 bool estadisticaRegistrada = false;
+
+// Variables de Control para la Pantalla de Carga
+float progresoCarga = 0.0f;
+float velocidadCarga = 0.8f;
+float offsetRejilla = 0.0f;
+
+// Control del volumen de música en pausa
+float volumenMusica = 0.5f;
 
 // Control del List Box (Dropdown) de Dificultad
 bool listBoxAbierto = false;
@@ -271,6 +280,23 @@ void EjecutarIADificil() {
 // =================================================================
 // LÓGICA CENTRAL DE ACTUALIZACIÓN
 // =================================================================
+
+void ActualizarPantallaCarga() {
+    if (progresoCarga < 100.0f) {
+        progresoCarga += GetRandomValue(8, 15) * 0.1f * velocidadCarga;
+        if (progresoCarga > 100.0f) progresoCarga = 100.0f;
+    }
+
+    offsetRejilla += 0.05f;
+    if (offsetRejilla >= 1.0f) offsetRejilla = 0.0f;
+
+    if (progresoCarga >= 100.0f) {
+        if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            estadoActual = MENU_PRINCIPAL;
+        }
+    }
+}
+
 void ActualizarMenu() {
     Vector2 mousePos = GetMousePosition();
     bool clic = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
@@ -320,6 +346,12 @@ void ActualizarMenu() {
 }
 
 void ActualizarJuego() {
+    // Activar pausa al presionar Escape o la tecla P
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) {
+        estadoActual = PAUSA;
+        return;
+    }
+
     Vector2 mousePos = GetMousePosition();
     bool clic = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
@@ -384,7 +416,7 @@ void ActualizarJuego() {
         }
 
         if (jugadorActual == 2 && contraIA) {
-            if (dificultadActual == FACIL) { EjecutarIAFacil(); }
+            if (dificultadActual == FACIL) { { EjecutarIAFacil(); } }
             else if (dificultadActual == MEDIO) { EjecutarIAMedia(); }
             else if (dificultadActual == DIFICIL) { EjecutarIADificil(); }
             return;
@@ -410,6 +442,46 @@ void ActualizarJuego() {
     }
 }
 
+void ActualizarPausa() {
+    Vector2 mousePos = GetMousePosition();
+    bool clic = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+    Rectangle btnContinuar = { 150.0f, 210.0f, 300.0f, 45.0f };
+    Rectangle btnReiniciar = { 150.0f, 270.0f, 300.0f, 45.0f };
+    Rectangle btnMenos = { 150.0f, 350.0f, 60.0f, 45.0f };
+    Rectangle btnMas = { 390.0f, 350.0f, 60.0f, 45.0f };
+    Rectangle btnMenu = { 150.0f, 430.0f, 300.0f, 45.0f };
+    Rectangle btnSalir = { 150.0f, 490.0f, 300.0f, 45.0f };
+
+    if (clic) {
+        if (CheckCollisionPointRec(mousePos, btnContinuar)) {
+            estadoActual = JUGANDO;
+        }
+        else if (CheckCollisionPointRec(mousePos, btnReiniciar)) {
+            InicializarJuego();
+            estadoActual = JUGANDO;
+        }
+        else if (CheckCollisionPointRec(mousePos, btnMenos)) {
+            if (volumenMusica > 0.0f) volumenMusica -= 0.1f;
+            if (volumenMusica < 0.0f) volumenMusica = 0.0f;
+        }
+        else if (CheckCollisionPointRec(mousePos, btnMas)) {
+            if (volumenMusica < 1.0f) volumenMusica += 0.1f;
+            if (volumenMusica > 1.0f) volumenMusica = 1.0f;
+        }
+        else if (CheckCollisionPointRec(mousePos, btnMenu)) {
+            estadoActual = MENU_PRINCIPAL;
+        }
+        else if (CheckCollisionPointRec(mousePos, btnSalir)) {
+            CloseWindow();
+        }
+    }
+
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) {
+        estadoActual = JUGANDO;
+    }
+}
+
 void ActualizarEstadisticas() {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_ENTER)) {
         estadoActual = MENU_PRINCIPAL;
@@ -417,7 +489,7 @@ void ActualizarEstadisticas() {
 }
 
 // =================================================================
-// RENDERIZADO
+// RENDERIZADO DE FICHAS Y LÍNEAS
 // =================================================================
 void DibujarFicha(int tipo, int cx, int cy, float p) {
     float fx = (float)cx;
@@ -509,6 +581,71 @@ void DibujarLineaGanadora() {
         float x = (float)indiceVictoria * 180.0f + 120.0f;
         DrawLineEx({ x, 145 }, { x, 655 }, 14, lineaGanadora);
     }
+    else if (tipoVictoria == 3) {
+        DrawLineEx({ 40, 145 }, { 560, 655 }, 14, lineaGanadora);
+    }
+    else if (tipoVictoria == 4) {
+        DrawLineEx({ 560, 145 }, { 40, 655 }, 14, lineaGanadora);
+    }
+}
+
+// =================================================================
+// RENDERIZADO DE PANTALLA DE CARGA CYBERPUNK
+// =================================================================
+void DibujarPantallaCarga() {
+    BeginDrawing();
+    ClearBackground(fondoOscuro);
+
+    Vector2 puntoFuga = { 300, 220 };
+    int numeroLineasFuga = 16;
+    for (int i = 0; i < numeroLineasFuga; i++) {
+        float angulo = (float)i * (360.0f / (float)numeroLineasFuga) * DEG2RAD;
+        Vector2 extremo = {
+            puntoFuga.x + cosf(angulo) * 600,
+            puntoFuga.y + sinf(angulo) * 600
+        };
+        DrawLineEx(puntoFuga, extremo, 2.0f, Fade(rejillaColor, 0.7f));
+    }
+
+    for (int i = 0; i < 8; i++) {
+        float radioMaximo = 450.0f;
+        float p = ((float)i + offsetRejilla) / 8.0f;
+        float radioActual = radioMaximo * p;
+        Color colCirculo = Fade(tableroNeon, p * 0.5f);
+        DrawCircleLines((int)puntoFuga.x, (int)puntoFuga.y, radioActual, colCirculo);
+    }
+
+    DrawCircleGradient({ 300.0f, 220.0f }, 250.0f, Fade(fondoOscuro, 0.8f), Fade(fondoOscuro, 0.0f));
+
+    int desfaceNeon = 3;
+    DrawText("CYBERPUNK", 160 + desfaceNeon, 80 + desfaceNeon, 48, cyborgBase);
+    DrawText("CYBERPUNK", 160, 80, 48, robotBrillo);
+
+    DrawText("TIC - TAC - TOE", 175 + desfaceNeon, 140 + desfaceNeon, 32, cyborgBase);
+    DrawText("TIC - TAC - TOE", 175, 140, 32, robotBrillo);
+
+    DrawText("C A R G A N D O   S I S T E M A . . .", 145, 390, 18, tableroBrillo);
+
+    Rectangle marcoBarra = { 100, 430, 400, 30 };
+    DrawRectangleRoundedLinesEx(marcoBarra, 0.2f, 8, 2.0f, tableroNeon);
+
+    float anchoLlenado = (progresoCarga / 100.0f) * 392.0f;
+    Rectangle barraProgreso = { 104, 434, anchoLlenado, 22 };
+    DrawRectangleRounded(barraProgreso, 0.15f, 8, Fade(robotBrillo, 0.85f));
+    DrawRectangleRoundedLinesEx({ 102, 432, anchoLlenado + 4, 26 }, 0.2f, 8, 1.0f, robotBase);
+
+    DrawText(TextFormat("%d %%", (int)progresoCarga), 280, 475, 20, robotBrillo);
+
+    if (progresoCarga >= 100.0f) {
+        if (((int)(GetTime() * 2.5f) % 2) == 0) {
+            DrawText("<< PRESIONA ENTER PARA INICIAR >>", 118, 525, 18, GREEN);
+        }
+    }
+
+    DrawLineEx({ 150, 600 }, { 450, 600 }, 1.0f, Fade(tableroNeon, 0.5f));
+    DrawText("V.2.5.0 // CORE SYSTEM SECURE", 195, 615, 14, Fade(tableroBrillo, 0.6f));
+
+    EndDrawing();
 }
 
 void DibujarPantallaMenu() {
@@ -543,7 +680,6 @@ void DibujarPantallaMenu() {
     DrawLineEx({ 100, 450 }, { 500, 450 }, 1.5f, rejillaColor);
     DrawText("CONFIGURACIÓN DE IA / DIFICULTAD", 160, 460, 15, PURPLE);
 
-    // BOTÓN DE SALIR (Se dibuja antes para que la List Box abierta flote por encima de él)
     Rectangle btnSalir = { 200, 590, 200, 45 };
     bool hoverSalir = CheckCollisionPointRec(mousePos, btnSalir);
     DrawRectangleRounded(btnSalir, 0.2f, 16, hoverSalir ? Fade(RED, 0.2f) : BLACK);
@@ -578,7 +714,6 @@ void DibujarPantallaMenu() {
     DrawRectangleRoundedLinesEx(rectListBoxPrincipal, 0.2f, 16, 2.0f, listBoxAbierto ? GREEN : tableroNeon);
     DrawText(textosDificultades[dificultadActual], (int)rectListBoxPrincipal.x + 20, (int)rectListBoxPrincipal.y + 15, 16, RAYWHITE);
     DrawText(listBoxAbierto ? "^" : "v", (int)rectListBoxPrincipal.x + (int)rectListBoxPrincipal.width - 25, (int)rectListBoxPrincipal.y + 12, 16, PURPLE);
-    // =================================================================
 
     EndDrawing();
 }
@@ -678,85 +813,154 @@ void DibujarPantallaJuego() {
             DrawText("¡EMPATE EN EL CUADRO!", 170, 160, 24, RAYWHITE);
         }
 
-        int imgX = 300, imgY = 310, imgSize = 120;
-        Vector2 origenV = { 0.0f, 0.0f };
-        if (estadoResultado == 1) {
-            if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
-        }
-        else if (estadoResultado == 2) {
-            if (contraIA && texPulgarAbajo.id > 0) DrawTexturePro(texPulgarAbajo, Rectangle{ 0, 0, (float)texPulgarAbajo.width, (float)texPulgarAbajo.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
-            else if (texCopa.id > 0) DrawTexturePro(texCopa, Rectangle{ 0, 0, (float)texCopa.width, (float)texCopa.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
-        }
-        else if (estadoResultado == 3) {
-            if (texEmpate.id > 0) DrawTexturePro(texEmpate, Rectangle{ 0, 0, (float)texEmpate.width, (float)texEmpate.height }, Rectangle{ (float)imgX - imgSize / 2, (float)imgY - imgSize / 2, (float)imgSize, (float)imgSize }, origenV, 0.0f, WHITE);
-        }
+        // Dibujar botones para reintentar o menú
+        DrawText("PRESIONA ENTER PARA SIGUIENTE NIVEL", 115, 330, 16, GREEN);
+        DrawText("PRESIONA R PARA REINICIAR", 165, 370, 16, RAYWHITE);
 
-        DrawText("Presiona [ENTER] para ir al SIGUIENTE NIVEL", 105, 410, 16, GREEN);
-        DrawText("Presiona [R] para reiniciar este nivel", 155, 445, 15, GRAY);
-
-        Rectangle btnVolverMenu = { 175, 480, 250, 35 };
-        Vector2 mPos = GetMousePosition();
-        bool hMenu = CheckCollisionPointRec(mPos, btnVolverMenu);
-        DrawRectangleRounded(btnVolverMenu, 0.2f, 16, hMenu ? Fade(PURPLE, 0.3f) : Fade(PURPLE, 0.1f));
-        DrawRectangleRoundedLinesEx(btnVolverMenu, 0.2f, 16, 1.5f, PURPLE);
-        DrawText("VOLVER AL MENÚ", 230, 490, 15, tableroBrillo);
+        Rectangle btnVolver = { 175, 430, 250, 35 };
+        bool hoverVolver = CheckCollisionPointRec(GetMousePosition(), btnVolver);
+        DrawRectangleRounded(btnVolver, 0.2f, 16, hoverVolver ? Fade(tableroNeon, 0.3f) : BLACK);
+        DrawRectangleRoundedLinesEx(btnVolver, 0.2f, 16, 1.5f, hoverVolver ? RAYWHITE : tableroNeon);
+        DrawText("MENÚ PRINCIPAL", 230, 440, 15, hoverVolver ? RAYWHITE : tableroNeon);
     }
+
     EndDrawing();
 }
 
+// =================================================================
+// RENDERIZADO DE LA PANTALLA DE PAUSA (INTEGRADO SIN CAMBIOS DE COLOR)
+// =================================================================
+void DibujarPantallaPausa() {
+    BeginDrawing();
+    ClearBackground(fondoOscuro);
+
+    for (int i = -10; i <= 20; i++) {
+        DrawLineEx({ 300.0f + (float)i * 15.0f, 400.0f }, { 300.0f + (float)i * 60.0f, 700.0f }, 2.0f, Fade(rejillaColor, 0.4f));
+    }
+
+    Rectangle panelPausa = { 100.0f, 100.0f, 400.0f, 480.0f };
+    DrawRectangleRec(panelPausa, Fade(BLACK, 0.85f));
+    DrawRectangleRoundedLinesEx(panelPausa, 0.05f, 16, 4.0f, tableroBrillo);
+
+    DrawText("SISTEMA EN PAUSA", 175, 130, 26, robotBrillo);
+    DrawLineEx({ 130.0f, 180.0f }, { 470.0f, 180.0f }, 1.5f, rejillaColor);
+
+    Vector2 mousePos = GetMousePosition();
+
+    // 1. Botón Continuar
+    Rectangle btnContinuar = { 150.0f, 210.0f, 300.0f, 45.0f };
+    bool hoverCont = CheckCollisionPointRec(mousePos, btnContinuar);
+    DrawRectangleRounded(btnContinuar, 0.2f, 16, hoverCont ? Fade(robotBase, 0.25f) : Fade(robotBase, 0.08f));
+    DrawRectangleRoundedLinesEx(btnContinuar, 0.2f, 16, hoverCont ? 2.5f : 1.5f, robotBase);
+    DrawText("CONTINUAR", 245, 223, 16, robotBrillo);
+
+    // 2. Botón Reiniciar
+    Rectangle btnReiniciar = { 150.0f, 270.0f, 300.0f, 45.0f };
+    bool hoverReiniciar = CheckCollisionPointRec(mousePos, btnReiniciar);
+    DrawRectangleRounded(btnReiniciar, 0.2f, 16, hoverReiniciar ? Fade(cyborgBase, 0.25f) : Fade(cyborgBase, 0.08f));
+    DrawRectangleRoundedLinesEx(btnReiniciar, 0.2f, 16, hoverReiniciar ? 2.5f : 1.5f, cyborgBase);
+    DrawText("REINICIAR NIVEL", 230, 283, 16, cyborgBrillo);
+
+    // 3. Controles de Volumen
+    DrawText("VOLUMEN MÚSICA", 235, 328, 14, PURPLE);
+
+    // Botón [-]
+    Rectangle btnMenos = { 150.0f, 350.0f, 60.0f, 45.0f };
+    bool hoverMenos = CheckCollisionPointRec(mousePos, btnMenos);
+    DrawRectangleRounded(btnMenos, 0.2f, 16, hoverMenos ? Fade(tableroNeon, 0.3f) : BLACK);
+    DrawRectangleRoundedLinesEx(btnMenos, 0.2f, 16, 1.5f, tableroNeon);
+    DrawText("-", 175, 360, 22, hoverMenos ? GREEN : RAYWHITE);
+
+    // Barra de volumen
+    Rectangle barraVol = { 225.0f, 362.0f, 150.0f, 20.0f };
+    DrawRectangleRec(barraVol, BLACK);
+    DrawRectangleLinesEx(barraVol, 1.0f, GRAY);
+    DrawRectangle(227, 364, (int)(146 * volumenMusica), 16, GREEN);
+
+    // Botón [+]
+    Rectangle btnMas = { 390.0f, 350.0f, 60.0f, 45.0f };
+    bool hoverMas = CheckCollisionPointRec(mousePos, btnMas);
+    DrawRectangleRounded(btnMas, 0.2f, 16, hoverMas ? Fade(tableroNeon, 0.3f) : BLACK);
+    DrawRectangleRoundedLinesEx(btnMas, 0.2f, 16, 1.5f, tableroNeon);
+    DrawText("+", 412, 360, 22, hoverMas ? GREEN : RAYWHITE);
+
+    // 4. Botón Volver al Menú Principal
+    Rectangle btnMenu = { 150.0f, 430.0f, 300.0f, 45.0f };
+    bool hoverMenu = CheckCollisionPointRec(mousePos, btnMenu);
+    DrawRectangleRounded(btnMenu, 0.2f, 16, hoverMenu ? Fade(tableroNeon, 0.3f) : BLACK);
+    DrawRectangleRoundedLinesEx(btnMenu, 0.2f, 16, hoverMenu ? 2.5f : 1.5f, tableroNeon);
+    DrawText("MENÚ PRINCIPAL", 235, 443, 16, hoverMenu ? RAYWHITE : GRAY);
+
+    // 5. Botón Salir
+    Rectangle btnSalir = { 150.0f, 490.0f, 300.0f, 45.0f };
+    bool hoverSalir = CheckCollisionPointRec(mousePos, btnSalir);
+    DrawRectangleRounded(btnSalir, 0.2f, 16, hoverSalir ? Fade(RED, 0.25f) : BLACK);
+    DrawRectangleRoundedLinesEx(btnSalir, 0.2f, 16, 1.5f, hoverSalir ? RED : GRAY);
+    DrawText("SALIR DEL JUEGO", 230, 503, 16, hoverSalir ? RED : GRAY);
+
+    EndDrawing();
+}
+
+// =================================================================
+// RENDERIZADO DE LAS ESTADÍSTICAS DEL SISTEMA
+// =================================================================
 void DibujarPantallaEstadisticas() {
     BeginDrawing();
     ClearBackground(fondoOscuro);
 
-    DrawText("MÓDULO DE ESTADÍSTICAS", 110, 50, 32, tableroBrillo);
-    DrawLineEx({ 50, 100 }, { 550, 100 }, 2, tableroNeon);
+    for (int i = -10; i <= 20; i++) DrawLineEx({ 300 + (float)i * 15, 400 }, { 300 + (float)i * 60, 700 }, 2, rejillaColor);
 
-    DrawText(TextFormat("Victorias Totales Jugador 1: %d", stats.victoriasJ1), 80, 150, 20, robotBrillo);
-    DrawText(TextFormat("Victorias Totales Jugador 2: %d", stats.victoriasJ2), 80, 190, 20, cyborgBrillo);
-    DrawText(TextFormat("Empates Totales en Red:      %d", stats.empates), 80, 230, 20, GRAY);
+    DrawText("ESTADÍSTICAS GENERALES", 110, 50, 32, tableroBrillo);
+    DrawLineEx({ 80, 100 }, { 520, 100 }, 2.0f, tableroNeon);
 
-    DrawLineEx({ 80, 290 }, { 520, 290 }, 1, rejillaColor);
-    DrawText("RENDIMIENTO CONTRA INTELIGENCIA ARTIFICIAL:", 80, 320, 16, PURPLE);
+    int espaciado = 36;
+    int inicioY = 140;
 
-    DrawText(TextFormat("  Victorias vs IA Fácil:    %d", stats.victoriasVsIAFacil), 80, 360, 18, GREEN);
-    DrawText(TextFormat("  Victorias vs IA Media:    %d", stats.victoriasVsIAMedia), 80, 400, 18, ORANGE);
-    DrawText(TextFormat("  Victorias vs IA Imbatible: %d", stats.victoriasVsIADificil), 80, 440, 18, RED);
-    DrawText(TextFormat("  Derrotas vs IA Imbatible:  %d", stats.derrotasVsIADificil), 80, 480, 18, RED);
+    DrawText(TextFormat("Victorias Jugador 1 (Azul / Dragón): %d", stats.victoriasJ1), 100, inicioY, 18, robotBrillo);
+    DrawText(TextFormat("Victorias Jugador 2 (Rojo / Fénix): %d", stats.victoriasJ2), 100, inicioY + espaciado, 18, cyborgBrillo);
+    DrawText(TextFormat("Empates Registrados: %d", stats.empates), 100, inicioY + (espaciado * 2), 18, RAYWHITE);
 
-    DrawText("Presiona cualquier tecla o haz clic para regresar", 110, 600, 15, GRAY);
+    DrawLineEx({ 100, inicioY + (espaciado * 3.2f) }, { 500, inicioY + (espaciado * 3.2f) }, 1.0f, PURPLE);
+    DrawText("Rendimiento Contra Computadora:", 100, inicioY + (espaciado * 3.6f), 16, PURPLE);
+
+    DrawText(TextFormat("Victorias Contra IA Fácil: %d", stats.victoriasVsIAFacil), 120, inicioY + (espaciado * 4.4f), 16, GREEN);
+    DrawText(TextFormat("Victorias Contra IA Media: %d", stats.victoriasVsIAMedia), 120, inicioY + (espaciado * 5.2f), 16, ORANGE);
+    DrawText(TextFormat("Victorias Contra IA Imbatible: %d", stats.victoriasVsIADificil), 120, inicioY + (espaciado * 6.0f), 16, MAGENTA);
+    DrawText(TextFormat("Derrotas Contra IA Imbatible: %d", stats.derrotasVsIADificil), 120, inicioY + (espaciado * 6.8f), 16, RED);
+
+    if (((int)(GetTime() * 1.8f) % 2) == 0) {
+        DrawText("PRESIONA CUALQUIER TECLA PARA VOLVER AL MENÚ", 110, 580, 15, tableroBrillo);
+    }
+
     EndDrawing();
 }
 
 // =================================================================
-// PUNTO DE ENTRADA PRINCIPAL
+// FUNCIÓN PRINCIPAL
 // =================================================================
 int main() {
     const int anchoPantalla = 600;
-    const int altoPantalla = 710;
+    const int altoPantalla = 700;
 
-    InitWindow(anchoPantalla, altoPantalla, "Cyberpunk Tic-Tac-Toe: Advanced Edition");
+    InitWindow(anchoPantalla, altoPantalla, "CYBERPUNK TIC-TAC-TOE - RECONEXIÓN");
     SetTargetFPS(60);
-
-    texDragon = LoadTexture("assets/dragon.png");
-    if (texDragon.id == 0) texDragon = LoadTexture("assets/dragon.PNG");
-
-    texFenix = LoadTexture("assets/fenix.png");
-    if (texFenix.id == 0) texFenix = LoadTexture("assets/fenix.PNG");
-    
-    texCopa = LoadTexture("assets/copa.png");
-    if (texCopa.id == 0) texCopa = LoadTexture("assets/copa.PNG");
-    
-    texPulgarAbajo = LoadTexture("assets/pulgar.png");
-    if (texPulgarAbajo.id == 0) texPulgarAbajo = LoadTexture("assets/pulgar.PNG");
-
-    texEmpate = LoadTexture("assets/empate.png");
-    if (texEmpate.id == 0) texEmpate = LoadTexture("assets/empate.PNG");
 
     CargarEstadisticas();
     InicializarJuego();
 
+    // Intentamos cargar las texturas (si existen)
+    texDragon = LoadTexture("dragon.png");
+    texFenix = LoadTexture("fenix.png");
+    texCopa = LoadTexture("copa.png");
+    texPulgarAbajo = LoadTexture("pulgar_abajo.png");
+    texEmpate = LoadTexture("empate.png");
+
     while (!WindowShouldClose()) {
         switch (estadoActual) {
+        case PANTALLA_CARGA:
+            ActualizarPantallaCarga();
+            DibujarPantallaCarga();
+            break;
         case MENU_PRINCIPAL:
             ActualizarMenu();
             DibujarPantallaMenu();
@@ -765,6 +969,10 @@ int main() {
             ActualizarJuego();
             DibujarPantallaJuego();
             break;
+        case PAUSA:
+            ActualizarPausa();
+            DibujarPantallaPausa();
+            break;
         case PANTALLA_ESTADISTICAS:
             ActualizarEstadisticas();
             DibujarPantallaEstadisticas();
@@ -772,6 +980,7 @@ int main() {
         }
     }
 
+    // Descarga de recursos
     UnloadTexture(texDragon);
     UnloadTexture(texFenix);
     UnloadTexture(texCopa);
